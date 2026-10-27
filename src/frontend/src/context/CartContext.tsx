@@ -2,9 +2,13 @@ import { createContext, useCallback, useContext, useEffect, useRef, useState, Re
 import { useMutation, useQuery, useQueryClient } from 'react-query';
 import {
   Cart,
+  CheckoutRequest,
+  CheckoutResult,
   addCartItem,
+  checkoutCart,
   createCart,
   fetchCart,
+  isConflictError,
   isNotFoundError,
   removeCartItem,
   updateCartItem,
@@ -43,6 +47,7 @@ interface CartContextType {
   addItem: (productId: number, quantity: number) => Promise<void>;
   updateQuantity: (productId: number, quantity: number) => Promise<void>;
   removeItem: (productId: number) => Promise<void>;
+  checkout: (request: CheckoutRequest) => Promise<CheckoutResult>;
 }
 
 const CartContext = createContext<CartContextType | null>(null);
@@ -103,11 +108,38 @@ export function CartProvider({ children }: { children: ReactNode }) {
     onSuccess: onCartChanged,
   });
 
+  // Once a cart becomes an order it no longer exists; the next add starts a fresh cart
+  const forgetCart = (id: number) => {
+    storeCartId(null);
+    setCartId(null);
+    queryClient.removeQueries(['cart', id]);
+  };
+
+  const checkoutMutation = useMutation(
+    ({ id, request }: { id: number; request: CheckoutRequest }) => checkoutCart(id, request),
+    {
+      onSuccess: (_result, { id }) => forgetCart(id),
+      onError: (error, { id }) => {
+        if (isNotFoundError(error)) {
+          // e.g. a retry after a lost response: the earlier attempt already placed the order
+          forgetCart(id);
+        } else if (isConflictError(error)) {
+          // The total changed or another checkout is running: show the cart as it is now
+          queryClient.invalidateQueries(['cart', id]);
+        }
+      },
+    },
+  );
+
   const value: CartContextType = {
     cart: cartQuery.data,
     itemCount: cartQuery.data?.itemCount ?? 0,
     isLoading: cartQuery.isLoading,
-    isUpdating: addMutation.isLoading || updateMutation.isLoading || removeMutation.isLoading,
+    isUpdating:
+      addMutation.isLoading ||
+      updateMutation.isLoading ||
+      removeMutation.isLoading ||
+      checkoutMutation.isLoading,
     error: cartQuery.error,
     addItem: async (productId, quantity) => {
       await addMutation.mutateAsync({ productId, quantity });
@@ -117,6 +149,12 @@ export function CartProvider({ children }: { children: ReactNode }) {
     },
     removeItem: async (productId) => {
       await removeMutation.mutateAsync(productId);
+    },
+    checkout: async (request) => {
+      if (cartId === null) {
+        throw new Error('There is no cart to check out');
+      }
+      return checkoutMutation.mutateAsync({ id: cartId, request });
     },
   };
 

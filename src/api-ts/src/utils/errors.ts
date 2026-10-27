@@ -36,6 +36,13 @@ export class ConflictError extends DatabaseError {
   }
 }
 
+export class PaymentDeclinedError extends DatabaseError {
+  constructor(reason: string) {
+    super(`Payment declined: ${reason}`, 'PAYMENT_DECLINED', 402);
+    this.name = 'PaymentDeclinedError';
+  }
+}
+
 /**
  * Handle database errors and convert SQLite-specific errors to appropriate types
  */

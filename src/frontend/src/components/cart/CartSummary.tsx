@@ -1,8 +1,9 @@
+import { ReactNode } from 'react';
 import { Cart } from '../../api/cart';
 import { useTheme } from '../../context/ThemeContext';
 import { formatCurrency } from '../../utils/currency';
 
-export default function CartSummary({ cart }: { cart: Cart }) {
+export default function CartSummary({ cart, children }: { cart: Cart; children?: ReactNode }) {
   const { darkMode } = useTheme();
   const labelClass = darkMode ? 'text-gray-400' : 'text-gray-600';
   const valueClass = darkMode ? 'text-light' : 'text-gray-800';
@@ -39,6 +40,7 @@ export default function CartSummary({ cart }: { cart: Cart }) {
           </dd>
         </div>
       </dl>
+      {children}
     </section>
   );
 }

@@ -56,5 +56,58 @@ export const removeCartItem = async (cartId: number, productId: number): Promise
   return data;
 };
 
+export interface PaymentDetails {
+  cardholderName: string;
+  cardNumber: string;
+  expMonth: number;
+  expYear: number;
+  cvc: string;
+}
+
+export interface CheckoutResult {
+  order: {
+    orderId: number;
+    branchId: number;
+    orderDate: string;
+    status: string;
+  };
+  orderDetails: { productId: number; quantity: number; unitPrice: number }[];
+  total: number;
+  currency: string;
+  payment: { provider: string; reference: string; last4: string };
+}
+
+export interface CheckoutRequest {
+  branchId: number;
+  /** The total shown to the customer; the API refuses to charge if the cart no longer matches */
+  expectedTotal: number;
+  payment: PaymentDetails;
+}
+
+export const checkoutCart = async (
+  cartId: number,
+  request: CheckoutRequest,
+): Promise<CheckoutResult> => {
+  const { data } = await axios.post<CheckoutResult>(`${cartsUrl}/${cartId}/checkout`, request);
+  return data;
+};
+
 export const isNotFoundError = (error: unknown): boolean =>
   axios.isAxiosError(error) && error.response?.status === 404;
+
+export const isConflictError = (error: unknown): boolean =>
+  axios.isAxiosError(error) && error.response?.status === 409;
+
+/**
+ * Extract the API's error message ({ error: { message } }) for display, with a fallback
+ */
+export const getApiErrorMessage = (error: unknown, fallback: string): string => {
+  if (axios.isAxiosError(error)) {
+    const message = (error.response?.data as { error?: { message?: unknown } } | undefined)?.error
+      ?.message;
+    if (typeof message === 'string' && message.length > 0) {
+      return message;
+    }
+  }
+  return fallback;
+};

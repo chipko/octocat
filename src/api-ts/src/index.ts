@@ -13,6 +13,7 @@ import supplierRoutes from './routes/supplier';
 import cartRoutes from './routes/cart';
 import { initializeDatabase } from './init-db';
 import { errorHandler } from './utils/errors';
+import { createPaymentProvider } from './payments/paymentProvider';
 
 const app = express();
 const port = process.env.PORT || 3000;
@@ -96,6 +97,13 @@ async function startServer() {
     console.log('🚀 Initializing database...');
     await initializeDatabase(true); // Always attempt seeding - the seeder checks if it's needed
     console.log('✅ Database initialized successfully');
+
+    // Surface payment misconfiguration at start-up; checkout requests will return 503 until fixed
+    try {
+      console.log(`💳 Payment provider: ${createPaymentProvider().name}`);
+    } catch (error) {
+      console.warn(`⚠️  Checkout disabled: ${(error as Error).message}`);
+    }
 
     app.listen(port, () => {
       console.log(`Server is running on port ${port}`);

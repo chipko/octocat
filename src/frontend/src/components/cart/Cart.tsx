@@ -66,7 +66,14 @@ export default function Cart() {
             />
           ))}
         </ul>
-        <CartSummary cart={cart} />
+        <CartSummary cart={cart}>
+          <Link
+            to="/checkout"
+            className="mt-6 block w-full text-center bg-primary hover:bg-accent text-white py-2 px-4 rounded-lg transition-colors"
+          >
+            Proceed to checkout
+          </Link>
+        </CartSummary>
       </div>
     );
   };

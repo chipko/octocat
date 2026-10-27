@@ -19,6 +19,20 @@ Default API URL: `http://localhost:3000`
 - `DB_ENABLE_WAL` (enable WAL mode; default: `true`)
 - `DB_FOREIGN_KEYS` (enforce foreign keys; default: `true`)
 - `DB_TIMEOUT` (busy timeout in ms; default: `30000`)
+- `PAYMENT_PROVIDER` (checkout payment provider; default: `mock`)
+- `PAYMENT_CURRENCY` (ISO currency code for charges; default: `USD`)
+- `PAYMENT_API_KEY` (provider secret; required for any provider other than `mock`. Set it in the environment, never in source)
+
+### Mock payment test cards
+
+With `PAYMENT_PROVIDER=mock`, any valid card number with a future expiry date succeeds, except:
+
+| Card number | Result |
+| --- | --- |
+| `4242 4242 4242 4242` | Succeeds |
+| `4000 0000 0000 0002` | Declined |
+| `4000 0000 0000 9995` | Declined: insufficient funds |
+| `4000 0000 0000 0069` | Declined: expired card |
 
 ## Database
 
